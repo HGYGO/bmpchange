@@ -2,5 +2,5 @@
 .PHONY: all
 
 all:
-	gcc  bmptransfer.c -o bmptransfer
+	g++  BmpTransfer.cpp -o bmptransfer
 	chmod a+x bmptransfer

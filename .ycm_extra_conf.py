@@ -66,9 +66,11 @@ flags = [
 # harmful
 '/System/Library/Frameworks/Python.framework/Headers',
 '-isystem',
-'../llvm/include',
+'/usr/bin/../lib/gcc/x86_64-linux-gnu/5.3.1/../../../../include/c++/5.3.1',
 '-isystem',
-'/usr/include/clang/3.8/include',
+'/usr/bin/../lib/gcc/x86_64-linux-gnu/5.3.1/../../../../include/x86_64-linux-gnu/c++/5.3.1',
+'-isystem',
+'/usr/bin/../lib/gcc/x86_64-linux-gnu/5.3.1/../../../../include/c++/5.3.1/backward',
 '-isystem',
 '/usr/local/include',
 '-isystem',
@@ -79,16 +81,6 @@ flags = [
 '/usr/include',
 '-I',
 '.',
-'-I',
-'./ClangCompleter',
-'-isystem',
-'./tests/gmock/gtest',
-'-isystem',
-'./tests/gmock/gtest/include',
-'-isystem',
-'./tests/gmock',
-'-isystem',
-'./tests/gmock/include',
 ]
 
 
