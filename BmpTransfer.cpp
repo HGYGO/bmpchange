@@ -4,11 +4,21 @@
 
 using namespace std;
 
+typedef struct _RGB24_T {
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+}RGB24_T;
+
 class BmpTransfer {
 	public:
-		BmpTransfer(string src, string dst);
+		BmpTransfer(char *src, char *dst);
+		BmpTransfer(int a);
 		void GetBmpPar(void);
 	private:
+		int test;
+		ifstream *fsrc;
+		ofstream *fdst;
 		string src;
 		string dst;
 		unsigned int width;
@@ -18,22 +28,25 @@ class BmpTransfer {
 
 const unsigned int BMP_DATA_OFFSET	= 0x0A;
 const unsigned int BMP_WIDTH_OFFSET	= 0x12;
-const unsigned int BMP_BPP_OFFSET	= 0x1C; q
+const unsigned int BMP_BPP_OFFSET	= 0x1C;
 
-BmpTransfer::BmpTransfer(string dst, string src)
+BmpTransfer::BmpTransfer(char *src, char *dst)
 {
-	this->src = src;
-	this->dst = dst;
+	short signatrue = 0;
 
-	cout<<"test"<<endl;
+	fsrc = new ifstream(src, ios::binary);
+	fdst = new ofstream(dst, ios::binary);
+
+	fsrc->
+
+	*fdst << fsrc->rdbuf();
+
+	//fsrc->close();
+	//fdst->close();
 }
 
 void BmpTransfer::GetBmpPar()
 {
-	ifstream ifs;
-	ifs.open(this->src);
-
-	ifs.failbit
 }
 
 int main(int argc, char **argv)
@@ -45,7 +58,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	BmpTransfer t = BmpTransfer(argv[1], argv[2]);
+	BmpTransfer t(argv[1], argv[2]);
 	return 1;
 }
 
