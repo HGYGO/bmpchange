@@ -2,6 +2,9 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
+#include <stdlib.h>
+//#include <stdlib.h>
 
 using namespace std;
 
@@ -20,8 +23,6 @@ class BmpTransfer {
 		void CopyFileTest(void);
 		ifstream *fsrc;
 		ofstream *fdst;
-		string src;
-		string dst;
 		unsigned int bmpOffset;
 		unsigned int bmpWidth;
 		unsigned int bmpHeight;
@@ -128,51 +129,38 @@ void BmpTransfer::CopyFileTest(void)
 
 void BmpTransfer::DataChange(unsigned int &width, unsigned int &height, unsigned int &density)
 {
-	RGB24_T rgbCalc;
-	RGB24_T pix;
 	unsigned int sumr = 0;
 	unsigned int sumg = 0;
 	unsigned int sumb = 0;
 
-	density = 10;
 	cout << "width: " << width << " height: " << height << " density: " << density << endl;
 
 	for (unsigned int row = 0; row < height / density; row++)
 	{
 		for (unsigned int column = 0; column < width / density; column++)
 		{
-			rgbCalc.r = 0; rgbCalc.g = 0; rgbCalc.b = 0;
 			sumr = 0; sumg = 0; sumb = 0;
-#if 1
 			for (unsigned i = 0; i < density; i++)
 			{
 				for (unsigned int j = 0; j < density; j++)
 				{
-					pix = pixData[row * density + i][column * density + j];
-
-					sumr += pix.r;
-					sumg += pix.g;
-					sumb += pix.b;
-#if 0
-					if ((i != 0) && (j != 0))
-					{
-						rgbCalc.r /= 2;
-						rgbCalc.g /= 2;
-						rgbCalc.b /= 2;
-					}
-#endif
+					sumr += pixData[row * density + i][column * density + j].r;
+					sumg += pixData[row * density + i][column * density + j].g;
+					sumb += pixData[row * density + i][column * density + j].b;
 				}
 			}
-#endif
-			rgbCalc.r = sumr / density / density;
-			rgbCalc.g = sumg / density / density;
-			rgbCalc.b = sumb / density / density;
+
+			sumr /= density * density;
+			sumg /= density * density;
+			sumb /= density * density;
 
 			for (unsigned i = 0; i < density; i++)
 			{
 				for (unsigned int j = 0; j < density; j++)
 				{
-					pixData[row * density + i][column * density + j] = rgbCalc;
+					pixData[row * density + i][column * density + j].r = sumr;
+					pixData[row * density + i][column * density + j].g = sumg;
+					pixData[row * density + i][column * density + j].b = sumb;
 				}
 			}
 
@@ -186,10 +174,12 @@ int main(int argc, char **argv)
 	{
 		printf("Invalid parameter, argc %d\n", argc);
 		printf("argv usage: src dst xnum\n");
-		//return -1;
+		return -1;
 	}
 
-	BmpTransfer t(argv[1], argv[2]);
+	BmpTransfer t(argv[1], argv[2], atoi(argv[3]));
+
+	printf("finished \n");
 	return 1;
 }
 
