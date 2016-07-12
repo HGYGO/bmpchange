@@ -4,15 +4,48 @@
 #include <vector>
 #include <string>
 #include <stdlib.h>
-//#include <stdlib.h>
+#include <string.h>
 
 using namespace std;
+
+//动态申请二维数组
+template <typename T>
+T** newArray2D(int row, int col)
+{
+    int size = sizeof(T);
+    int point_size = sizeof(T*);
+    //先申请内存，其中sizeof(T*) * row表示存放row个行指针
+    T **arr = (T **) malloc(point_size * row + size * row * col);
+    if (arr != NULL)
+    {
+        T *head = (T*)((long)arr + point_size * row);
+        for (int i = 0; i < row; ++i)
+        {
+            arr[i] =  (T*)((long)head + i * col * size);
+            for (int j = 0; j < col; ++j)
+                new (&arr[i][j]) T;
+        }
+    }
+    return (T**)arr;
+}
+//释放二维数组
+template <typename T>
+void deleteArray2D(T **arr, int row, int col)
+{
+    for (int i = 0; i < row; ++i)
+        for (int j = 0; j < col; ++j)
+            arr[i][j].~T();
+    if (arr != NULL)
+        free((void**)arr);
+}
 
 typedef struct {
 	unsigned char b;
 	unsigned char g;
 	unsigned char r;
-}RGB24_T;
+}RGB_T;
+
+typedef RGB_T rgb_t;
 
 class BmpTransfer {
 	public:
@@ -20,34 +53,57 @@ class BmpTransfer {
 		void GetBmpPar(void);
 	private:
 		void DataChange(unsigned int &width, unsigned int &height, unsigned int &density);
-		void CopyFileTest(void);
-		ifstream *fsrc;
-		ofstream *fdst;
-		unsigned int bmpOffset;
-		unsigned int bmpWidth;
-		unsigned int bmpHeight;
-		unsigned short bmpBpp;
-		unsigned int pixDensity;
-		RGB24_T **pixData;
+		ifstream *mFSrc;
+		ofstream *mFDst;
+		unsigned int mBmpOffset;
+		unsigned int mBmpWidth;
+		unsigned int mBmpHeight;
+		unsigned short mBmpBpp;
+		unsigned int mPixDensity;
+		int mColorNum;
+		rgb_t **mRgb24;
+		const int BMP_OFFSET;
+		const int BMP_WIDTH;
+		const int BMP_BPP;
 };
 
-const int BMP_DATA_OFFSET	= 0x0A;
-const int BMP_WIDTH			= 0x12;
-const int BMP_BPP			= 0x1C;
-
 BmpTransfer::BmpTransfer(char *src, char *dst, unsigned int dencity = 10)
+	:BMP_OFFSET(0x0A), BMP_WIDTH(0x12), BMP_BPP(0x1c)
 {
-	this->pixDensity = dencity;
+	this->mPixDensity = dencity;
+
+	mFSrc = new ifstream(src, ios::binary);
+	mFDst = new ofstream(dst, ios::binary);
+
+	mColorNum = 16;
+
+	GetBmpPar();
+
+	mRgb24 = newArray2D<rgb_t>(mBmpHeight, mBmpWidth);
+
+	mFSrc->seekg(this->mBmpOffset, ios::beg);
+
+	mFSrc->read((char *)mRgb24[0], mBmpWidth * mBmpHeight * mBmpBpp / 8);
+
+	DataChange(this->mBmpWidth, this->mBmpHeight, this->mPixDensity);
+
+	mFDst->seekp(this->mBmpOffset);
+
+	mFDst->write((char *)mRgb24[0], mBmpWidth * mBmpHeight * mBmpBpp / 8);
+
+	deleteArray2D<rgb_t>(mRgb24, mBmpHeight, mBmpWidth);
+
+	mFSrc->close();
+	mFDst->close();
+}
+
+void BmpTransfer::GetBmpPar()
+{
 	short signatrue = 0;
+	*mFDst << mFSrc->rdbuf();
 
-	fsrc = new ifstream(src, ios::binary);
-	fdst = new ofstream(dst, ios::binary);
-
-	cout << "Copy file " << src << " to " << dst << endl;
-	*fdst << fsrc->rdbuf();
-
-	fsrc->seekg(0, ios::beg);
-	fsrc->read((char *)&signatrue, sizeof(signatrue));
+	mFSrc->seekg(0, ios::beg);
+	mFSrc->read((char *)&signatrue, sizeof(signatrue));
 
 	cout << "BMP Signature:" << hex << signatrue << endl;
 	if (signatrue != 0x4D42)
@@ -56,83 +112,28 @@ BmpTransfer::BmpTransfer(char *src, char *dst, unsigned int dencity = 10)
 		return;
 	}
 
-	fsrc->seekg(BMP_DATA_OFFSET, ios::beg);
-	cout << "Offset " << fsrc->tellg() << endl;
-	fsrc->read((char *)&this->bmpOffset, sizeof(this->bmpOffset));
-	fsrc->seekg(BMP_WIDTH, ios::beg);
-	fsrc->read((char *)&this->bmpWidth, sizeof(this->bmpWidth));
-	fsrc->read((char *)&this->bmpHeight, sizeof(this->bmpHeight));
-	fsrc->seekg(BMP_BPP, ios::beg);
-	fsrc->read((char *)&this->bmpBpp, sizeof(this->bmpBpp));
+	mFSrc->seekg(BMP_OFFSET, ios::beg);
+	cout << "Offset " << mFSrc->tellg() << endl;
+	mFSrc->read((char *)&this->mBmpOffset, sizeof(this->mBmpOffset));
+	mFSrc->seekg(BMP_WIDTH, ios::beg);
+	mFSrc->read((char *)&this->mBmpWidth, sizeof(this->mBmpWidth));
+	mFSrc->read((char *)&this->mBmpHeight, sizeof(this->mBmpHeight));
+	mFSrc->seekg(BMP_BPP, ios::beg);
+	mFSrc->read((char *)&this->mBmpBpp, sizeof(this->mBmpBpp));
 
 	cout << dec\
-		<< "offset:" << bmpOffset\
-		<< ", width:" << bmpWidth\
-		<< ", height:" << bmpHeight\
-		<< ", bpp:" << bmpBpp\
+		<< "offset:" << mBmpOffset\
+		<< ", width:" << mBmpWidth\
+		<< ", height:" << mBmpHeight\
+		<< ", bpp:" << mBmpBpp\
 		<< endl;
 
-	pixData = new RGB24_T*[this->bmpHeight];
 
-	fsrc->seekg(this->bmpOffset, ios::beg);
-	for (unsigned int i = 0; i < this->bmpHeight; i++)
-	{
-		pixData[i] = new RGB24_T[this->bmpWidth];
-		fsrc->read((char *)pixData[i], this->bmpWidth * this->bmpBpp / 8);
-	}
-
-	DataChange(this->bmpWidth, this->bmpHeight, this->pixDensity);
-
-	fdst->seekp(this->bmpOffset);
-
-	for (unsigned int i = 0; i < this->bmpHeight; i++)
-	{
-		fdst->write((char *)pixData[i], this->bmpWidth * this->bmpBpp / 8);
-		delete pixData[i];
-	}
-
-	delete pixData;
-
-	fsrc->close();
-	fdst->close();
-}
-
-void BmpTransfer::GetBmpPar()
-{
-}
-
-void BmpTransfer::CopyFileTest(void)
-{
-	int writeCount = 0;
-	char *bmpHead = new char[this->bmpOffset];
-	ofstream testFile("copy_test.bmp", ios::binary);
-
-	int fsrcPos = fsrc->tellg();
-
-	fsrc->seekg(0, ios::beg);
-	fsrc->read(bmpHead, this->bmpOffset);
-	testFile.write(bmpHead, this->bmpOffset);
-	writeCount += this->bmpBpp;
-	cout << "count " << writeCount << endl;
-
-	for(unsigned int i = 0; i < this->bmpHeight; i++)
-	{
-		testFile.write((char *)pixData[i], this->bmpWidth * this->bmpBpp / 8);
-	}
-
-	if (testFile.is_open())
-	{
-		testFile.close();
-	}
-	fsrc->seekg(fsrcPos);
 }
 
 void BmpTransfer::DataChange(unsigned int &width, unsigned int &height, unsigned int &density)
 {
-	unsigned int sumr = 0;
-	unsigned int sumg = 0;
-	unsigned int sumb = 0;
-
+	unsigned int sumr, sumg, sumb;
 	cout << "width: " << width << " height: " << height << " density: " << density << endl;
 
 	for (unsigned int row = 0; row < height / density; row++)
@@ -140,30 +141,39 @@ void BmpTransfer::DataChange(unsigned int &width, unsigned int &height, unsigned
 		for (unsigned int column = 0; column < width / density; column++)
 		{
 			sumr = 0; sumg = 0; sumb = 0;
-			for (unsigned i = 0; i < density; i++)
-			{
-				for (unsigned int j = 0; j < density; j++)
-				{
-					sumr += pixData[row * density + i][column * density + j].r;
-					sumg += pixData[row * density + i][column * density + j].g;
-					sumb += pixData[row * density + i][column * density + j].b;
-				}
-			}
-
-			sumr /= density * density;
-			sumg /= density * density;
-			sumb /= density * density;
 
 			for (unsigned i = 0; i < density; i++)
 			{
 				for (unsigned int j = 0; j < density; j++)
 				{
-					pixData[row * density + i][column * density + j].r = sumr;
-					pixData[row * density + i][column * density + j].g = sumg;
-					pixData[row * density + i][column * density + j].b = sumb;
+					sumr += mRgb24[row * density + i][column * density + j].r;
+					sumg += mRgb24[row * density + i][column * density + j].g;
+					sumb += mRgb24[row * density + i][column * density + j].b;
 				}
 			}
 
+			sumr /= (density * density);
+			sumg /= (density * density);
+			sumb /= (density * density);
+
+			for (unsigned i = 0; i < density; i++)
+			{
+				for (unsigned int j = 0; j < density; j++)
+				{
+					if ((i % density == 0) || (j % density == 0))
+					{
+						mRgb24[row * density + i][column * density + j].b = 0;
+						mRgb24[row * density + i][column * density + j].g = 0;
+						mRgb24[row * density + i][column * density + j].r = 0;
+					}
+					else
+					{
+						mRgb24[row * density + i][column * density + j].b = sumb;
+						mRgb24[row * density + i][column * density + j].g = sumg;
+						mRgb24[row * density + i][column * density + j].r = sumr;
+					}
+				}
+			}
 		}
 	}
 }
