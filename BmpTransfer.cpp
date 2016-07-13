@@ -39,6 +39,11 @@ void deleteArray2D(T **arr, int row, int col)
         free((void**)arr);
 }
 
+const unsigned int BMP_OFFSET 	= 0x0A;
+const unsigned int BMP_WIDTH	= 0x12;
+const unsigned int BMP_BPP		= 0x1C;
+const unsigned int COLOR_MAX	=0xFFFFFF;
+
 typedef struct {
 	unsigned char b;
 	unsigned char g;
@@ -51,8 +56,9 @@ class BmpTransfer {
 	public:
 		BmpTransfer(char *src, char *dst, unsigned int dencity);
 		void GetBmpPar(void);
+		void ColorGrid(unsigned int &width, unsigned int &height, unsigned int &density);
+		void SortColor(void);
 	private:
-		void DataChange(unsigned int &width, unsigned int &height, unsigned int &density);
 		ifstream *mFSrc;
 		ofstream *mFDst;
 		unsigned int mBmpOffset;
@@ -62,13 +68,9 @@ class BmpTransfer {
 		unsigned int mPixDensity;
 		int mColorNum;
 		rgb_t **mRgb24;
-		const int BMP_OFFSET;
-		const int BMP_WIDTH;
-		const int BMP_BPP;
 };
 
 BmpTransfer::BmpTransfer(char *src, char *dst, unsigned int dencity = 10)
-	:BMP_OFFSET(0x0A), BMP_WIDTH(0x12), BMP_BPP(0x1c)
 {
 	this->mPixDensity = dencity;
 
@@ -85,7 +87,7 @@ BmpTransfer::BmpTransfer(char *src, char *dst, unsigned int dencity = 10)
 
 	mFSrc->read((char *)mRgb24[0], mBmpWidth * mBmpHeight * mBmpBpp / 8);
 
-	DataChange(this->mBmpWidth, this->mBmpHeight, this->mPixDensity);
+	ColorGrid(this->mBmpWidth, this->mBmpHeight, this->mPixDensity);
 
 	mFDst->seekp(this->mBmpOffset);
 
@@ -127,11 +129,9 @@ void BmpTransfer::GetBmpPar()
 		<< ", height:" << mBmpHeight\
 		<< ", bpp:" << mBmpBpp\
 		<< endl;
-
-
 }
 
-void BmpTransfer::DataChange(unsigned int &width, unsigned int &height, unsigned int &density)
+void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned int &density)
 {
 	unsigned int sumr, sumg, sumb;
 	cout << "width: " << width << " height: " << height << " density: " << density << endl;
@@ -176,6 +176,11 @@ void BmpTransfer::DataChange(unsigned int &width, unsigned int &height, unsigned
 			}
 		}
 	}
+}
+
+void BmpTransfer::SortColor(void)
+{
+	int colorGap = COLOR_MAX / mColorNum;
 }
 
 int main(int argc, char **argv)
