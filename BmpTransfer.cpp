@@ -160,7 +160,9 @@ void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned 
 			{
 				for (unsigned int j = 0; j < density; j++)
 				{
-					if ((i % density == 0) || (j % density == 0))
+					if ((i % density == 0) || (j % density == 0) ||
+							((i >= density / 2 - 1) && (i <= density / 2 + 1) &&
+							(j >= density / 2 - 1) && (j <= density / 2 + 1)))
 					{
 						mRgb24[row * density + i][column * density + j].b = 0;
 						mRgb24[row * density + i][column * density + j].g = 0;
