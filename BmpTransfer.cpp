@@ -52,12 +52,39 @@ typedef struct {
 
 typedef RGB_T rgb_t;
 
+rgb_t gColorList[] = {
+		{0xff, 0xff, 0xff},
+		{0xff, 0x00, 0x00},
+		{0x00, 0xff, 0x00},
+		{0x00, 0x00, 0xff},
+		{0xff, 0xff, 0xff},
+		{0x00, 0xff, 0xff},
+		{0x27, 0x31, 0x51},
+		{0x70, 0x8e, 0xff},
+		{0x50, 0x86, 0x00},
+		{0x8f, 0xba, 0xff},
+		{0x6a, 0x65, 0x63},
+		{0xaa, 0xa8, 0xa8},
+		{0xd7, 0xd9, 0xda},
+		{0xbc, 0xbb, 0xba},
+		{0xbb, 0xd0, 0xf0},
+		{0x4f, 0x9b, 0xed},
+		{0x7e, 0x5d, 0xf8},
+		{0x32, 0x35, 0x32},
+		{0x2b, 0x66, 0xa9},
+		{0x2b, 0x9b, 0xd8},
+		{0x9e, 0x77, 0xf8},
+		{0x31, 0x51, 0xc3},
+		{0x9d, 0xd0, 0xfb},
+		{0xe6, 0xb5, 0x00}
+};
+
 class BmpTransfer {
 	public:
 		BmpTransfer(char *src, char *dst, unsigned int dencity);
 		void GetBmpPar(void);
 		void ColorGrid(unsigned int &width, unsigned int &height, unsigned int &density);
-		void SortColor(void);
+		int ColorMap(rgb_t &rgb);
 	private:
 		ifstream *mFSrc;
 		ofstream *mFDst;
@@ -66,7 +93,6 @@ class BmpTransfer {
 		unsigned int mBmpHeight;
 		unsigned short mBmpBpp;
 		unsigned int mPixDensity;
-		int mColorNum;
 		rgb_t **mRgb24;
 };
 
@@ -76,8 +102,6 @@ BmpTransfer::BmpTransfer(char *src, char *dst, unsigned int dencity = 10)
 
 	mFSrc = new ifstream(src, ios::binary);
 	mFDst = new ofstream(dst, ios::binary);
-
-	mColorNum = 16;
 
 	GetBmpPar();
 
@@ -133,6 +157,7 @@ void BmpTransfer::GetBmpPar()
 
 void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned int &density)
 {
+	rgb_t tmpRgb;
 	unsigned int sumr, sumg, sumb;
 	cout << "width: " << width << " height: " << height << " density: " << density << endl;
 
@@ -156,6 +181,12 @@ void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned 
 			sumg /= (density * density);
 			sumb /= (density * density);
 
+			tmpRgb.r = sumr;
+			tmpRgb.g = sumg;
+			tmpRgb.b = sumb;
+
+			ColorMap(tmpRgb);
+
 			for (unsigned i = 0; i < density; i++)
 			{
 				for (unsigned int j = 0; j < density; j++)
@@ -170,9 +201,10 @@ void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned 
 					}
 					else
 					{
-						mRgb24[row * density + i][column * density + j].b = sumb;
-						mRgb24[row * density + i][column * density + j].g = sumg;
-						mRgb24[row * density + i][column * density + j].r = sumr;
+						mRgb24[row * density + i][column * density + j] = tmpRgb;
+						//mRgb24[row * density + i][column * density + j].b = sumb;
+						//mRgb24[row * density + i][column * density + j].g = sumg;
+						//mRgb24[row * density + i][column * density + j].r = sumr;
 					}
 				}
 			}
@@ -180,9 +212,32 @@ void BmpTransfer::ColorGrid(unsigned int &width, unsigned int &height, unsigned 
 	}
 }
 
-void BmpTransfer::SortColor(void)
+int BmpTransfer::ColorMap(rgb_t &rgb)
 {
-	int colorGap = COLOR_MAX / mColorNum;
+	float similarity = 1.1;
+	int listN = 0;
+	int colorNum = sizeof(gColorList) / sizeof(gColorList[0]);
+
+	for (int i = 0; i < colorNum; i++)
+	{
+		float tmpSimi= (255 - abs(gColorList[i].r - rgb.r) * 0.297 - abs(gColorList[i].g - rgb.g) * 0.593 - abs(gColorList[i].b - rgb.b) * 0.11)/ 255;
+
+		if (tmpSimi < similarity)
+		{
+			similarity = tmpSimi;
+			listN = i;
+		}
+	}
+
+	//cout << "similarity: " << similarity << endl;
+	if (similarity > 0.3)
+	{
+		return -1;
+	}
+
+	rgb = gColorList[listN];
+
+	return 0;
 }
 
 int main(int argc, char **argv)
